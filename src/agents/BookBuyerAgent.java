@@ -4,6 +4,10 @@ import jade.core.Agent;
 import jade.core.AID;
 import jade.core.behaviours.TickerBehaviour;
 import jade.core.behaviours.Behaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
@@ -11,7 +15,7 @@ public class BookBuyerAgent extends Agent {
 
     private String agentNickname = "";
     private String targetBookTitle = "";
-    private AID[] sellerAgents = {new AID("seller1", AID.ISLOCALNAME), new AID("seller2", AID.ISLOCALNAME)};
+    private AID[] sellerAgents;
 
 
     /*
@@ -34,8 +38,28 @@ public class BookBuyerAgent extends Agent {
                 @Override
                 protected void onTick() {
 
-//                    myAgent.addBehaviour(new RequestPerformer());
-                    System.out.println("myAgent.addBehaviour(new RequestPerformer());");
+                    DFAgentDescription template = new DFAgentDescription();
+                    ServiceDescription sd = new ServiceDescription();
+                    sd.setType("book-selling");
+                    template.addServices(sd);
+                    try{
+
+                         DFAgentDescription[] result = DFService.search(myAgent, template);
+                         System.out.print("Seller Agents: ");
+                         sellerAgents = new AID[result.length];
+                         for(int i = 0; i < result.length; i++) {
+
+                             sellerAgents[i] = result[i].getName();
+                             System.out.print(sellerAgents[i].getName() + " , ");
+                         }
+                         System.out.print("\n");
+                    }
+                    catch(FIPAException fe){
+
+                        fe.printStackTrace();
+                    }
+
+                    myAgent.addBehaviour(new RequestPerformer());
                 }
             });
         }
@@ -135,12 +159,11 @@ public class BookBuyerAgent extends Agent {
                 case 3:     // Receive purchase order
 
                     reply = myAgent.receive(msgTemp);
-
                     if(reply != null){
 
                         if(reply.getPerformative() == ACLMessage.INFORM){
 
-                            System.out.println(targetBookTitle + " has been bought for " + cheapestPrice);
+                            System.out.println(targetBookTitle + " has been bought for " + cheapestPrice + "€");
                             myAgent.doDelete();
                         }
 

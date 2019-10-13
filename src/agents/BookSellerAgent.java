@@ -3,6 +3,10 @@ package agents;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
@@ -25,9 +29,27 @@ public class BookSellerAgent extends Agent {
 
         catalogue = new Hashtable();
 
+        // GUI stuff
         myGui = new BookSellerGui(this);
         myGui.show();
 
+        // Registration in the yellow pages
+        DFAgentDescription dfd = new DFAgentDescription();
+        dfd.setName(getAID());
+        ServiceDescription sd = new ServiceDescription();
+        sd.setType("book-selling");
+        sd.setName("JADE-book-trading");
+        dfd.addServices(sd);
+        try{
+
+            DFService.register(this, dfd);
+        }
+        catch(FIPAException fe){
+
+            fe.printStackTrace();
+        }
+
+        // Adding the behaviours for the buyer agents
         addBehaviour(new OfferRequestsServer());
         addBehaviour(new PurchaseOrdersServer());
     }
@@ -38,7 +60,19 @@ public class BookSellerAgent extends Agent {
      */
     protected void takeDown(){
 
+        // Removing the registration in the yellow pages
+        try{
+
+            DFService.deregister(this);
+        }
+        catch(FIPAException fe){
+
+            fe.printStackTrace();
+        }
+
+        // GUI stuff
         myGui.dispose();
+
         System.out.println("Seller-agent " + agentNickname + " has terminated!");
     }
 
@@ -109,7 +143,7 @@ public class BookSellerAgent extends Agent {
 
                 String bookTitle = msg.getContent();
                 ACLMessage reply = msg.createReply();
-                Integer bookPrice = (Integer) catalogue.get(bookTitle);
+                Integer bookPrice = (Integer) catalogue.remove(bookTitle);
 
                 if(bookPrice != null){
 
